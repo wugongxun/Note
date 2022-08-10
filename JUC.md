@@ -711,4 +711,106 @@ public class SemaphoreDemo {
    }
    ```
 
-4. 
+4. 线程池的七个参数介绍
+
+   - corePoolSize：常驻线程数量
+   - maximumPoolSize：最大线程数量
+   - keepAliveTime：线程存活时间
+   - TimeUnit：线程存活时间单位
+   - BlockingQueue<Runnable\>：阻塞队列
+   - ThreadFactory：线程工厂
+   - RejectedExecutionHandler：拒接策略
+
+5. 解决策略
+
+   - AbortPolicy（默认）：直接抛出RejectedExecutionException异常阻止系统正常运行
+   - CallerRunsPolicy：调用者运行，一种调节机制，该策略既不会抛弃任务，也不会抛出异常，而是将某些任务回退到调用者，从而降低新任务的流量
+   - DiscardOlderPolicy：抛弃队列中等待最久的任务，然后把当前任务加入队列中，尝试再次提交当前任务
+   - DiscardPolicy：该策略默默地抛弃无法被处理的任务，不予任何处理也不抛出异常，如果允许任务丢失，这是最好的一种策略
+
+6. 自定义线程池
+
+   ```java
+   ExecutorService threadPool = new ThreadPoolExecutor(
+           2,
+           5,
+           2L,
+           TimeUnit.SECONDS,
+           new ArrayBlockingQueue<>(3),
+           Executors.defaultThreadFactory(),
+           new ThreadPoolExecutor.AbortPolicy()
+   );
+   ```
+
+7. 分支合并
+
+   ```java
+   public class ForkJoinDemo {
+       public static void main(String[] args) throws ExecutionException, InterruptedException {
+           MyTask myTask = new MyTask(1, 100);
+           ForkJoinPool forkJoinPool = new ForkJoinPool();
+           ForkJoinTask<Integer> forkJoinTask = forkJoinPool.submit(myTask);
+           Integer result = forkJoinTask.get();
+           System.out.println(result);
+           forkJoinPool.shutdown();
+       }
+   }
+   
+   class MyTask extends RecursiveTask<Integer> {
+       //拆分差值
+       private static final Integer VALUE = 10;
+       //拆分开始值
+       private int begin;
+       //拆分结束值
+       private int end;
+       //返回结果
+       private int result;
+   
+       public MyTask(int begin, int end) {
+           this.begin = begin;
+           this.end = end;
+       }
+   
+       @Override
+       protected Integer compute() {
+           if (end - begin > 10) {
+               for (int i = begin; i <= end; i++) {
+                   result += i;
+               }
+           } else {
+               //拆分
+               int middle = (begin + end) / 2;
+               MyTask left = new MyTask(begin, middle);
+               MyTask right = new MyTask(middle + 1, end);
+               left.fork();
+               right.fork();
+               result = left.join() + right.join();
+           }
+           return result;
+       }
+   }
+   ```
+
+8. 异步回调
+
+   ```java
+   public class CompletableFutureDemo {
+       public static void main(String[] args) throws ExecutionException, InterruptedException {
+           //异步调用，没有返回值
+           CompletableFuture<Void> completableFuture1 = CompletableFuture.runAsync(() -> {
+               System.out.println(Thread.currentThread().getName());
+           });
+           completableFuture1.get();
+           //异步调用，有返回值
+           CompletableFuture<String> completableFuture2 = CompletableFuture.supplyAsync(() -> {
+               System.out.println(Thread.currentThread().getName());
+               return "wgx";
+           });
+           completableFuture2.whenComplete((t, u) -> {
+               System.out.println("t:" + t);//返回值
+               System.out.println("u:" + u);//异常信息
+           }).get();
+       }
+   }
+   ```
+

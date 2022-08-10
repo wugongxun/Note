@@ -2420,7 +2420,7 @@ FilterConfig类的作用是获取filter过滤器配置内容
 
      ```javascript
      <script>
-         $(function () {
+     $(function () {
          $("#ajax").click(function () {
              $.ajax({
                  url: "http://localhost:8080/JSON_AJAX_i18n/ajaxServlet",
@@ -2468,3 +2468,4 @@ FilterConfig类的作用是获取filter过滤器配置内容
 
      serialize()可以把表单中所有表单项的内容获取到，并以name=value&name=value的形式进行拼接
 
+ 

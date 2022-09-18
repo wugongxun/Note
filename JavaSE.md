@@ -4602,7 +4602,7 @@ System.out.println(s5.charAt(0)");
 
    - 如果一个字段的长度是不确定的，使用varchar
 
-   - 在存放文本时可以使用Text数据类型，可以将TEXT列视为VARCHAR列，注意Text不能有默认值，大小0-2^16字节，MEDIUMTEXT为0-2^24，LONGTEXT为0-2^32
+   - 在存放文本时可以使用Text数据类型，可以将TEXT列视为VARCHAR列，注意Text不能有默认值，大小0-2^16^字节，MEDIUMTEXT为0-2^24^，LONGTEXT为0-2^32^
 
    - 如果希望TIMESTAMP自动更新，需要配置
 

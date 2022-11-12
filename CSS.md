@@ -769,7 +769,7 @@ img {
    /*取消图片底侧有空白缝隙*/
    vertical-align: middle;
 }
-/*鼠标经过button的时候，编程小手*/
+/*鼠标经过button的时候，变成小手*/
 button {
    cursor: pointer;
 }
@@ -786,7 +786,7 @@ body {
    color: #666;
 }
 /*清除浮动*/
-.clearfix {
+.clearfix::after {
    visibility: hidden;
    clear: both;
    display: block;

@@ -179,7 +179,7 @@
    const app = express();
    
    app.listen(80, () => {
-       console.log("express server running at 80");
+           console.log("express server running at 80");
    });
    ```
 
@@ -221,7 +221,7 @@
 
 6. 托管静态资源
 
-   express提供了一个非常好用的函数，叫做express.static0,通过它，我们可以非常方便地创建一个静态资源服务器，例如，通过如下代码就可以将public目录下的图片、CSS文件、JavaScript文件对外开放访问了：
+   express提供了一个非常好用的函数，叫做express.static(),通过它，我们可以非常方便地创建一个静态资源服务器，例如，通过如下代码就可以将public目录下的图片、CSS文件、JavaScript文件对外开放访问了：
 
    ```js
    app.use(express.static("public"));

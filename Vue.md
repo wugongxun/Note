@@ -151,7 +151,7 @@
 3. get函数什么时候执行？
    - 初次读取时会执行一次。
    - 当依赖的数据发生改变时会被再次调用。
-4. 优势：与methods'实现相比，内部有级存机制（复用），效率更高，调试方便
+4. 优势：与methods实现相比，内部有级存机制（复用），效率更高，调试方便
 5. 备注：
    - 计算属性最终会出现在vm上，直接读取使用即可。
    - 如果计算属性要被修改，那必须写set函数去响应修改，且set中要引起计算时依赖的数据发生改变
@@ -893,7 +893,7 @@ vm.$watch("isHot", function (newValue, oldValue) {
 
 1. school组件本质是一个名为VueComponent的构造函数，且不是程序员定义的，是Vue.extend生成的
 
-2. 我们只需要写<school/\>或<\school>\</school>，Vue解析时会帮我们创建school组件的实例对象，即Vue帮我们执行的：new VueComponent(options)。
+2. 我们只需要写<school/\>或<school\>\</school>，Vue解析时会帮我们创建school组件的实例对象，即Vue帮我们执行的：new VueComponent(options)。
 
 3. 特别注意：每次调用Vue.extend，返回的都是一个全新的VueComponent
 
@@ -1093,7 +1093,7 @@ vm.$watch("isHot", function (newValue, oldValue) {
 
    让组件接收外部传过来的数据
 
-   - 传递数据：<Demo name="xxx"/\>
+   - 传递数据：<Demo :name="xxx"/\>
 
    - 接收数据
 
@@ -1299,7 +1299,7 @@ vm.$watch("isHot", function (newValue, oldValue) {
 
    - 组件上也可以绑定原生DOM事件，需要使用native修饰符。
 
-   - 注意：通过this.$refs.xxx.$on('eventDemo',回调)绑定自定义事件时，回调要么配置在methods中，要么用箭头函数，否则this指向会出问题！
+   - 注意：通过this.$refs.xxx.\$on('eventDemo',回调)绑定自定义事件时，回调要么配置在methods中，要么用箭头函数，否则this指向会出问题！
 
 ## 四，全局事件总线
 

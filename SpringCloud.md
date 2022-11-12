@@ -1622,7 +1622,7 @@ public class LogGatewayFilter implements GlobalFilter, Ordered {
 
    - 在nacos配置中心添加配置
 
-     格式为：${prefix}-${spring.profiles.active}.${file-extension}
+     格式为：\${prefix}-\${spring.profiles.active}.\${file-extension}
 
      **prefix 默认为 spring.application.name 的值，也可以通过配置项 spring.cloud.nacos.config.prefix来配置。**
 

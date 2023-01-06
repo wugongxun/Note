@@ -529,7 +529,7 @@
     - 数值可以是正整数、负整数或0，默认是auto,数值越大，盒子越靠上
     - 如果属性值相同，则按照书写顺序，后来居上
     - 数字后面不能加单位
-    - 只有定位的盒子才有Z-index属性
+    - 只有定位的盒子才有z-index属性
 
 11. 定位的浮动特殊性
 
@@ -1063,4 +1063,255 @@ body {
    - transform-style: preserve-3d;子元素开启立体空间
    - 代码写给父级，但是影响的是子盒子
 
+
+# 二十五，视口
+
+视口(viewport)就是浏览器显示页面内容的屏幕区域。视口可以分为布局视口、视觉视口和理想视口
+
+1. 布局视口（layout viewport）
+
+   - 一般移动设备的浏览器都默认设置了一个布局视口，用于解决早期的PC端页面在手机上显示的问题。
+   - iOS，Android基本都将这个视口分辨率设置为980px，所以PC上的网页大多都能在手机上呈现，只不过元素看上去很小，一般默认可以通过手动缩放网页。
+
+2. 视觉视口（visual viewport）
+
+   - 它是用户正在看到的网站的区域。**注意：是网站的区域。**
+   - 我们可以通过缩放去操作视觉视口，但不会影响布局视口，布局视口仍保持原来的宽度。
+
+3. 理想视口（ideal viewport）
+
+   - 为了使网站在移动端有最理想的浏览和阅读宽度而设定
+   - 理想视口，对设备来讲，是最理想的视口尺寸
+   - 需要手动添写meta视口标签通知浏览器操作
+   - meta视口标签的主要目的：布局视口的宽度应该与理想视口的宽度一致，简单理解就是设备有多宽，我们布局的视口就多宽
+
+4. meta视口标签
+
+   ```html
+   <meta name="viewport" content="width=device-width, user-scalable=no,
+               initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+   ```
+
+   ![](F:\截图\屏幕截图 2022-12-30 154759.png)
+
+# 二十六，二倍图
+
+1. 物理像素
+
+   - 物理像素点指的是屏幕显示的最小颗粒，是物理真实存在的。这是厂商在出厂时就设置好了，比如苹果6\7\8是750*1334
+   - 我们开发时候的1px不是一定等于1个物理像素的
+   - PC端页面，1个px等于1个物理像素的，但是移动端就不尽相同
+   - 一个x的能显示的物理像素点的个数，称为物理像素比或屏幕像素比
+
+2. 物理像素&物理像素比
+
+   - PC端和早前的手机屏幕/普通手机屏幕：1CSS像素=1物理像素的
+   - Retina(视网膜屏幕)是一种显示技术，可以将把更多的物理像素点压缩至一块屏幕里，从而达到更高的分辨率，并提高屏幕显示的细腻程度。
+
+3. 多倍图
+
+   - 对于一张50px*50px的图片，在手机Retina屏中打开，按照网刚才的物理像素比会放大倍数，这样会造成图片模糊
+   - 在标准的viewport设置中，使用倍图来提高图片质量，解决在高清设备中的模糊问题
+   - 通常使用二倍图，因为iPhone6例7\8的影响，但是现在还存在3倍图4倍图的情况，这个看实际开发公司需求背景图片注意缩放问题
+
+4. 背景缩放（background-size）
+
+   ```css
+   background-size: 背景图片宽度 背景图片高度
+   ```
+
+   - 单位：长度|百分比|cover|contain
+   - cover把背景图像扩展至足够大，以使背景图像完全覆盖背景区域。 
+   - contain把图像图像扩展至最大尺寸，以使其宽度和高度完全适应内容区域
+
+# 二十七，移动端技术解决方案
+
+1. 特殊样式
+
+   ```css
+   /*CSS3盒子模型*/
+   box-sizing: border-box;
+   -webkit-box-sizing: border-box;
+   /*清除点击高亮*/
+   -webkit-tap-highlight-color: transparent;
+   /*移动端浏览器默认的外观在IOS上加上这个属性才能给按钮和输入框自定义样式*/
+   -webkit-appearance: none;
+   /*禁用长按页面时弹出菜单*/
+   img, a {
+       -webkit-touch-callout: none;
+   }
+   ```
+
+2. 移动端技术选型
+
+   - 单独制作移动端页面（主流）
+     - 流式布局（百分比布局）
+     - flex弹性布局（推荐）
+     - less+rem+媒体查询
+     - 混合布局
+   - 响应式页面兼容移动端
+     - 媒体查询
+     - bootstrap
+
+# 二十八，flex布局
+
+1. flex布局原理
+
+   flex是flexible Box的缩写，意为"弹性布局”，用来为盒状模型提供最大的灵活性，任何一个容器都可以 指定为flex布局。 
+
+   - 当我们为父盒子设为flex布局以后，子元素的float、clear和vertical-align属性将失效。
+   -  伸缩布局=弹性布局=伸缩盒布局=弹性盒布局=flex布局
+   - 采用Flex布局的元素，称为Flex容器(flex container)，简称"容器"。它的所有子元素自动成为容 器成员，称为Flex项目(flex item)，简称"项目"。
+
+2. flex布局父项常见属性
+
+   - flex-direction:设置主轴的方向
+
+     ![](F:\截图\屏幕截图 2022-12-31 152707.png)
+
+   - justify-content:设置主轴上的子元素排列方式
+
+     ![](F:\截图\屏幕截图 2022-12-31 152907.png)
+
+   - flex-wrap:设置子元素是否换行
+
+   - align-content:设置侧轴上的子元素的排列方式（多行）
+
+     ![](F:\截图\屏幕截图 2022-12-31 153829.png)
+
+   - align-items:设置侧轴上的子元素排列方式（单行）
+
+     ![](F:\截图\屏幕截图 2022-12-31 153348.png)
+
+   - flex-flow:复合属性，相当于同时设置了flex-direction和flex-wrap
+
+3. flex布局子项常见属性
+
+   - flex：子项目占的份数
+   - align-self：控制子项自己在侧轴的排列方式
+   - order：属性定义子项的排列顺序（前后顺序）
+
+# 二十九，背景颜色渐变
+
+```css
+background: linear-gradient(起始方向, 颜色1, 颜色2, ...);
+background: -webkit-linear-gradient(top, #fa5b55, #fb8550);
+background: -webkit-linear-gradient(left top, #ff8939, #ffa846);
+```
+
+# 三十，rem+媒体查询适配布局
+
+1. rem单位
+
+   rem(root em)是一个相对单位，类似于em，em是父元素字体大小。 不同的是rem的基准是相对于html元素的字体大小。 比如，根元素(html)设置font-size=12px非根元素设置width:2rem;则换成px表示就是24px
+
+2. 媒体查询
+
+   媒体查询(Media Query)是CSS3新语法。
+
+   - 使用@media查询，可以针对不同的媒体类型定义不同的样式
+   - @media可以针对不同的屏幕尺寸设置不同的样式
+   - 当你重置浏览器大小的过程中，页面也会根据浏览器的宽度和高度重新渲染页面
+   - 目前针对很多苹果手机、Android手机、平板等设备都用得到多媒体查间
+
+3. 媒体查询语法规范
+
+   ```css
+   @media mediatype and|not|only (media feature) {
+       /*css code*/
+   }
+   ```
+
+   - 用@media开头
+
+   - mediatype媒体类型
+
+     ![](F:\截图\屏幕截图 2023-01-04 161944.png)
+
+   - 关键字and not only
+
+     - and:可以将多个媒体特性连接到一起，相当于“且”的意思.
+     - not:排除某个媒体类型，相当于“非”的意思，可以省略。
+     - only:指定某个特定的媒体类型，可以省略。
+
+   - media feature媒体特性必须有小括号包含
+
+     ![](F:\截图\屏幕截图 2023-01-04 162211.png)
+
+4. 媒体查询引入资源
+
+   ```html
+   <link rel="stylesheet" media="screen and (min-width: 320px)" href="style320.css">
+   <link rel="stylesheet" media="screen and (min-width: 640px)" href="style640.css">
+   ```
+
+# 三十一，Less基础
+
+1. Less介绍
+
+   Less(Leaner Style Sheets的缩写)是一门CSS扩展语言，也成为CSS预处理器。做为CSS的一种形式的扩展，它并没有减少CSS的功能，而是在现有的CSS语法上，为CSS加入程序式语言的特性。它在CSS的语法基础之上，引入了变量，Mixin(混入)，运算以及函数等功能，大大简化了CSS的编写 ,并且降低了CSS的维护成本，就像它的名称所说的那样，Less可以让我们用更少的代码做更多的事情。
+
+   Less中文网址：http://lesscss.cn/
+
+   常见的CSS预处理器：Sass、Less、Stylus
+
+2. Less变量
+
+   变量是指没有固定的值，可以改变的。因为我们CSS中的一些颜色和数值等经常使用。
+
+   变量命名规范
+
+   - 必须有@为前缀
+   - 不能包含特殊字符
+   - 不能以数字开头
+   - 大小写敏感
+
+3. Less编译
+
+   本质上，Less包含一套自定义的语法及一个解析器，用户根据这些语法定义自己的样式规测，这些规则 最终会通过解析器，编译生成对应的CSS文件。 
+
+   所以，我们需要把我们的less文件，编译生成为css文件，这样我们的html页面才能使用。
+
+4. Less嵌套
+
+   ```less
+   @color1: pink;
+   @color2: blue;
+   body {
+     background-color: @color1;
    
+     div {
+       background-color: @color2;
+       width: 100px;
+       height: 100px;
+   
+       &:hover {
+         background-color: yellow;
+       }
+     }
+   }
+   ```
+
+5. Less运算
+
+   ```less
+   @color1: pink;
+   @color2: blue;
+   body {
+     background-color: @color1;
+   
+     div {
+       background-color: @color2;
+       //运算符左边和右边必须有一个空格
+       //两个数参与运算，如果只有一个单位，最后结果以这个单位为准
+       //两个数参与运算，如果两个数都有单位，最后结果以第一个单位为准
+       width: 100px * 2;
+       height: 100px + 100px;
+   
+       &:hover {
+         background-color: yellow;
+       }
+     }
+   }
+   ```
+

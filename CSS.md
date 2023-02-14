@@ -1315,3 +1315,193 @@ background: -webkit-linear-gradient(left top, #ff8939, #ffa846);
    }
    ```
 
+# 三十二，canvas
+
+1. canvas的基本使用
+
+   ```html
+   <body>
+       <!--必须使用width="500" height="500"设置宽高-->
+       <canvas width="500" height="500"></canvas>
+   </body>
+   <script>
+       //canvas的任何操作都需要通过js完成
+       let canvas = document.querySelector("canvas");
+       //获取画笔
+       let context = canvas.getContext("2d");
+   
+       //绘制线段
+       //起点
+       context.moveTo(100, 100);
+       //其他点
+       context.lineTo(200, 200);
+       context.lineTo(200, 100);
+       //将起点和终点连接起来
+       context.closePath();
+       //设置线的颜色
+       context.strokeStyle = "blue";
+       //设置线的宽度
+       context.lineWidth = 2;
+       //设置图形的填充颜色
+       context.fillStyle = "red";
+       context.fill();
+       //画线
+       context.stroke();
+   </script>
+   ```
+
+2. 绘制矩形
+
+   ```html
+   <body>
+       <canvas height="500" width="500"></canvas>
+   </body>
+   <script>
+       let canvas = document.querySelector("canvas");
+       let context = canvas.getContext("2d");
+   
+       //绘制矩形
+       /**
+        * 第一个和第二个参数：左上角点的坐标（距离左边和上边的距离）
+        * 第三个和第四个参数：矩形的长宽
+        */
+       context.strokeStyle = "red";
+       context.strokeRect(0, 200, 200, 100);
+   
+       //绘制填充颜色的矩形
+       context.fillStyle = "red";
+       context.fill();
+       context.fillRect(300, 200, 200, 100)
+   </script>
+   ```
+
+3. 绘制圆形
+
+   ```html
+   <body>
+       <canvas width="500" height="500"></canvas>
+   </body>
+   <script>
+       let canvas = document.querySelector("canvas");
+       let context = canvas.getContext("2d");
+   
+       /**
+        * 参数分别为：圆心到左边的距离，
+        *           圆心到右边的距离，
+        *           半径
+        *           起始弧度
+        *           结束弧度（360° = 2 * π）
+        *           是否逆向绘制
+        */
+       context.beginPath();
+       context.arc(200, 200, 100, 0, Math.PI * 2, true);
+       context.fillStyle = "red";//设置填充颜色
+       context.fill();
+       context.stroke();
+   
+       //绘制一个90°的弧
+       context.beginPath();
+       context.arc(300, 300, 50, 0, Math.PI / 2, false);
+       context.stroke();
+   </script>
+   ```
+
+4. 清除画布
+
+   ```js
+   //清除画布
+   context.clearRect(0, 0, 500, 500);
+   ```
+
+5. 绘制文字
+
+   ```js
+   //设置字体
+   context.font = "16px 微软雅黑";
+   //设置颜色
+   context.fillStyle = "red";
+   //绘制文字
+   context.fillText("数据可视化", 200, 150);
+   ```
+
+# 三十三，svg
+
+1. ```<svg>```标签包裹并定义整个矢量图
+
+2. ```<line>```创建一条直线
+
+   ```html
+   <!--
+       x1, y1：第一个点的坐标
+       x2, y2：第二个点的坐标
+       stroke：线的颜色
+       stroke-width：线的宽度
+   -->
+   <line x1="100" y1="100" x2="200" y2="200" stroke="red" stroke-width="10"></line>
+   ```
+
+3. ```<polyline>```创建折线
+
+   ```html
+   <!--
+       points：点的集合
+       fill-opacity：填充颜色的透明度
+   -->
+   <polyline points="100 100, 200 200, 300 100" stroke="red" fill-opacity="0"></polyline>
+   ```
+
+4. ```<rect>```创建矩形
+
+   ```html
+   <!--
+       x, y：左上角点的坐标
+       width, height：矩形的宽高
+       fill：填充颜色
+   -->
+   <rect x="100" y="100" width="200" height="100" fill="red" stroke="blue"></rect>
+   ```
+
+5. ```<circle>```创建圆
+
+   ```html
+   <!--
+       r：半径
+       cx, cy：圆心的坐标
+   -->
+   <circle r="50" cx="100" cy="100" fill="red"></circle>
+   ```
+
+6. ```<ellipse>```创建圆和椭圆
+
+   ```html
+   <!--
+       rx：x轴半径
+       ry：y轴半径
+   -->
+   <ellipse rx="100" ry="50" cx="100" cy="100" fill="red"></ellipse>
+   ```
+
+7. ```<polygon>```创建多边形
+
+   ```html
+   <polygon points="100 100, 200 200, 100, 200" stroke="red" fill-opacity="0"></polygon>
+   ```
+
+8. ```<path>```通过指定点以及点和点之间的线来创建任意形状
+
+   ```html
+   <!--
+       M：移动到初始位置
+       L：画线
+       Z：将结束和开始点闭合
+   -->
+   <path d="
+       M 100 100
+       L 200 200
+       L 100 200
+       Z
+   " fill-opacity="0" stroke="red"></path>
+   ```
+
+
+

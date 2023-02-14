@@ -1454,7 +1454,7 @@ JMM(Java内存模型Java Memory Model,简称JMM)本身是一种抽象概念并�
 
    - ==在无锁状态下==，Mark Word中可以存储对象的identity hash code值。当对象的hashCode()方法第一次被调用时，JVM会生成对应的identity hash code值并将该值存储到Mark Word中。
 
-   - ==对于偏向锁===，在线程获取偏向锁时，会用Thread ID和epoch值覆盖identity hash code所在的位置。如果一个对象的hashCode()方法已经被调用过一次之后，这个对象不能被设置偏向锁。因为如果可以的话，那Mark Word中的identity hash code必然会被偏向线程lD给覆盖，这就会造成同一个对象前后两次调用hashCode()方法得到的结果不一致。
+   - ==对于偏向锁==，在线程获取偏向锁时，会用Thread ID和epoch值覆盖identity hash code所在的位置。如果一个对象的hashCode()方法已经被调用过一次之后，这个对象不能被设置偏向锁。因为如果可以的话，那Mark Word中的identity hash code必然会被偏向线程lD给覆盖，这就会造成同一个对象前后两次调用hashCode()方法得到的结果不一致。
 
    - ==升级为轻量级锁时==，JVM会在当前线程的栈帧中创建一个锁记录Lock Record空间，用于存储锁对象的Mark Word拷贝，该拷贝中可以包含identity hash code，所以轻量级锁可以和identity hash code共存，哈希码和GC年龄自然保存在此，释放锁后会将这些信息写回到对象头。
 

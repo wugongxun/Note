@@ -6328,7 +6328,7 @@ System.out.println(s5.charAt(0)");
 2. public boolean matcher(String regex)//整体匹配
 3. public String[] split(String regex)
 
-# 第二十二章 java8新特性
+# 第二十二章 jdk8新特性
 
 ## 一，lambda表达式
 
@@ -6641,5 +6641,98 @@ System.out.println(s5.charAt(0)");
 
      T orElseThrow(Supplier<? extends X> exceptionSupplier):如果有值则将其返回，否则抛出由Supplier接口实现提供的异常
 
+# 第二十三章 jdk17新特性
 
+1. 自动关闭流
+
+   ```java
+   try (FileInputStream fis = new FileInputStream("test");
+        FileOutputStream fos = new FileOutputStream("test")) {
+       //操作
+   } catch (IOException e) {
+       throw new RuntimeException(e);
+   }
+   ```
+
+2. 类型推断
+
+   ```java
+   var map = new HashMap<String, String>();
+   var arr = new int[5];
+   ```
+
+3. instanceof模式匹配
+
+   ```java
+   Object o = new String("wgx");
+   if (o instanceof String str) {
+       System.out.println(str);
+   }
+   ```
+
+4. switch表达式
+
+   ```java
+   int i = 1;
+   String s = switch (i) {
+       case 1, 2, 3, 4, 5 -> {yield "工作日";}
+       case 6, 7 -> {yield "周末";}
+       default -> throw new IllegalStateException("Unexpected value: " + i);
+   };
+   ```
+
+5. 文本块
+
+   ```java
+   String s = """
+           <body>
+               <div></div>
+           </body>
+           """;
+   ```
+
+6. Record
+
+   record是一种全新的类型，它本质上是一个final类，同时所有的属性都是final修饰，它会自动编译出 **public get**、**hashcode**、**equals**、**toString**、**构造器**等结构，减少了代码编写量。
+
+   具体来说：当你用record声明一个类时，该类将自动拥有以下功能：
+
+   - 获取成员变量的简单方法，注意区别于我们平常getter()的写法。
+   - 一个equals方法的实现，执行比较时会比较该类的所有成员属性。
+   - 重写hashCode()方法。
+   - 一个可以打印该类所有成员属性的toString()方法。
+   - 只有一个构造方法。
+
+   ```java
+   public record Test(int id, String name) {
+   }
+   
+   //使用
+   Test test = new Test(1, "wgx");
+   System.out.println(test);
+   ```
+
+7. 密封类
+
+   在Java中如果想让一个类不能被继承和修改，这时我们应该使用final关键字对类进行修饰。不过这种要么可 以继承，要么不能继承的机制不够灵活，有些时候我们可能想让某个类可以被某些类型继承，但是又不能随意继 承，是做不到的。Java15尝试解决这个问题，引入了sealed类，被sealed修饰的类可以指定子类。这样这个类就只能被指定的类继承。
+
+   具体使用：
+
+   - 使用修饰符sealed，可以将一个类声明为密封类。密封的类使用保留关键字permits列出可以直接扩展 （即extends）它的类。 
+   - sealed修饰的类的机制具有传递性，它的子类必须使用指定的关键字进行修饰，且只能是final、 sealed、non-sealed三者之一。
+
+   ```java
+   public sealed class Person permits Student, Teacher {
+   }
+   
+   final class Student extends Person {
+   
+   }
+   
+   non-sealed class Teacher extends Person {
+       
+   }
+   ```
+
+   
 

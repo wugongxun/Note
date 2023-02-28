@@ -756,3 +756,213 @@
 
 ![](F:\截图\屏幕截图 2023-02-22 173919.png)
 
+## 五，host
+
+1. 容器将不会获得一个独立的Network Namespace，而是和宿主机共用一个Network Namespace。容器将不会虚拟出自己的网卡而是使用宿主机的网络IP和端口
+2. docker启动时指定--network=host或者--net=host，如果还指定了-p映射端口，那么这个时候就会有警告，并且通过-p设置的参数将不会起到任何作用，端口会以主机端口为主，重复时递增
+
+## 六，none
+
+在none模式下，并不为Docker容器进行任何网络配置。也就是说，这个Docker容器没有网卡、IP、路由等信息，只有一个lo，需要我们自己为Docker容器添加网卡，配置IP等
+
+## 七，container
+
+新创建的容器不会创建自己的网卡和配置自己的IP，而是和一个指定的容器共享IP、端口范围等
+
+## 八，自定义网络
+
+1. 新建自定义网络
+
+   ```linux
+   docker network create my_network
+   ```
+
+   ![](F:\截图\屏幕截图 2023-02-24 142828.png)
+
+2. 新建容器加入上一步新建的自定义网络
+
+   ```linux
+   docker run -d -p 8081:8080 --network my_network --name=tomcat81 tomcat
+   
+   docker run -d -p 8082:8080 --network my_network --name=tomcat82 tomcat
+   ```
+
+   自定义网络本身就维护好了主机名和ip的对应关系
+
+# 第八章 Docker容器编排
+
+## 一，Docker-Compose简介与安装
+
+1. Compose是Docker公司推出的一个工具软件，可以管理多个Docker容器组成一个应用。你需要定义一个YAML格式的配置文件docker-compose.yml,写好多个容器之间的调用关系。然后，只要一个命令，就能同时启动/关闭这些容器。
+
+2. 下载安装
+
+   ```linux
+   curl -SL https://github.com/docker/compose/releases/download/v2.16.0/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+   ```
+
+## 二，Compose常用命令
+
+1. docker compose -h #查看帮助
+2. docker compose up #启动所有docker-compose服务
+3. docker compose up -d #启动所有docker--compose服务并后台运行
+4. docker compose down #停止并删除容器、网络、卷、镜像。
+5. docker compose exec yml里面的服务id #进入容器实例内部
+6. docker compose exec docker-compose.yml文件中写的服务id bash
+7. docker compose ps #展示当前docker-compose:编排过的运行的所有容器
+8. docker compose top #展示当前docker-compose编排过的容器进程
+9. docker compose logs yml里面的服务id #查看容器输出日志
+10. docker compose config #检查配置
+11. docker compose config -q #检查配置，有问题才有输出
+12. docker compose restart #重启服务
+13. docker compose start #启动服务
+14. docker compose stop #停止服务
+
+## 三，Compose编排微服务
+
+1. 编写docker-compose.yml文件
+
+   ```yaml
+   version: "3"
+   
+   services: 
+     microService:
+       image: docker_server:4
+       container_name: docker_server
+       ports: 
+         - "8081:8081"
+       volumes: 
+         - /tmp:/data
+       networks: 
+         - my_network
+       depends_on: 
+         - redis
+         - mysql
+   
+     redis: 
+       image: redis
+       ports: 
+         - "6379:6379"
+       volumes: 
+         - /home/wgx/redis/data:/data
+         - /home/wgx/redis/redis.conf:/etc/redis/redis.conf
+       networks: 
+         - my_network
+       command: redis-server /etc/redis/redis.conf
+     
+     mysql: 
+       image: mysql:5.7
+       environment: 
+         MYSQL_ROOT_PASSWORD: 'wgx'
+         MYSQL_ALLOW_EMPTY_PASSWORD: 'no'
+         MYSQL_DATABASE: 'db01'
+         MYSQL_USER: 'wgx'
+         MYSQL_PASSWORD: 'wgx'
+       ports: 
+         - "3306:3306"
+       volumes: 
+         - /home/wgx/mysql/data:/var/lib/mysql
+         - /home/wgx/mysql/conf/my.cnf:/etc/my.cnf
+         - /home/wgx/mysql/:/docker-entrypoint-initdb.d
+       networks: 
+         - my_network
+       command: --default-authentication-plugin=mysql_native_password #解决外部无法访问
+   
+   networks: 
+     my_network: 
+   ```
+
+2. 将微服务中的ip地址换成服务名
+
+   ![](F:\截图\屏幕截图 2023-02-27 154530.png)
+
+3. 将微服务构建docker镜像
+
+   执行docker compose config -q查看yml文件是否有错误
+
+4. 启动所有服务
+
+   docker compose up -d
+
+# 第九章 可视化
+
+## 一，Portainer
+
+1. 安装并运行
+
+   ```linux
+   docker run -d -p 8000:8000 -p 9000:9000 --restart=always --privileged=true -v /var/run/docker.sock:/var/run/docker.sock portainer/portainer
+   ```
+
+2. 访问地址
+
+   http://192.168.154.128:9000/
+
+   ![](F:\截图\屏幕截图 2023-02-27 163017.png)
+
+## 二，CIG
+
+1. 安装与运行
+
+   - docker-compose.yml
+
+     ```yaml
+     version: '3.1'
+     volumes:
+       grafana_data: {}
+     
+     services:
+       influxdb:
+         image: tutum/influxdb:0.9
+         restart: always
+         environment: 
+           - PRE_CREATE_DB=cadvisor
+         ports:
+           - "8083:8083"
+           - "8086:8086"
+         volumes:
+           - ./data/influxdb:/data
+                  
+       cadvisor:
+         image: google/cadvisor
+         links:
+           - influxdb:influxsrv
+         command: -storage_driver=influxdb -storage_driver_db=cadvisor -storage_driver_host=influxsrv:8086
+         restart: always
+         ports:
+           - "8080:8080"
+         volumes:
+           - /:/rootfs:ro
+           - /var/run:/var/run:rw
+           - /sys:/sys:ro
+           - /var/lib/docker/:/var/lib/docker:ro
+     
+       grafana:
+         user: "104"
+         image: grafana/grafana
+         user: "104"
+         restart: always
+         links:
+           - influxdb:influxsrv
+         ports:
+           - "3000:3000"
+         volumes:
+           - grafana_data:/var/lib/grafana
+         environment:
+           - HTTP_USER=admin
+           - HTTP_PASS=admin
+           - INFLUXDB_HOST=influxsrv
+           - INFLUXDB_PORT=8086
+           - INFLUXDB_NAME=cadvisor
+           - INFLUXDB_USER=root
+           - INFLUXDB_PASS=root
+     ```
+
+   - 执行docker compose up
+
+2. 测试
+
+   - CAdvisor收集服务：http://ip:8080/
+   - influxdb存储服务：http://ip:8083/
+   - grafana展现服务：http://ip:3000/
+

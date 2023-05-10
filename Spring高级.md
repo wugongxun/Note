@@ -460,10 +460,6 @@ public class TestMethodTemplate {
 
 #### 演示3 - bean 后处理器排序
 
-##### 代码参考 
-
-**com.itheima.a03.TestProcessOrder**
-
 #### 收获💡
 
 1. 实现了 PriorityOrdered 接口的优先级最高
@@ -476,9 +472,33 @@ public class TestMethodTemplate {
 
 #### 演示1 - 后处理器作用
 
-##### 代码参考 
+```java
+public static void main(String[] args) {
+    // ⬇️GenericApplicationContext 是一个【干净】的容器
+    GenericApplicationContext context = new GenericApplicationContext();
 
-**com.itheima.a04** 包
+    // ⬇️用原始方法注册三个 bean
+    context.registerBean("bean1", Bean1.class);
+    context.registerBean("bean2", Bean2.class);
+    context.registerBean("bean3", Bean3.class);
+    context.registerBean("bean4", Bean4.class);
+
+    context.getDefaultListableBeanFactory().setAutowireCandidateResolver(new ContextAnnotationAutowireCandidateResolver());
+    context.registerBean(AutowiredAnnotationBeanPostProcessor.class); // @Autowired @Value
+
+    context.registerBean(CommonAnnotationBeanPostProcessor.class); // @Resource @PostConstruct @PreDestroy
+
+    ConfigurationPropertiesBindingPostProcessor.register(context.getDefaultListableBeanFactory());
+
+    // ⬇️初始化容器
+    context.refresh(); // 执行beanFactory后处理器, 添加bean后处理器, 初始化所有单例
+
+    System.out.println(context.getBean(Bean1.class));
+
+    // ⬇️销毁容器
+    context.close();
+}
+```
 
 #### 收获💡
 
@@ -3908,7 +3928,7 @@ public class Step7 {
    3. EnvironmentPostProcessor 后处理增强
       * 由 EventPublishingRunListener 通过监听事件2️⃣来调用
    4. 绑定 spring.main 前缀的 key value 至 SpringApplication
-7. Banner 
+7. Banner
 
 
 

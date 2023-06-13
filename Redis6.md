@@ -1156,9 +1156,9 @@ public class Cluster {
 1. 简介
 
    Redis ACL是Access Control List（访问控制列表）的缩写，该功能允许根据可以执行的命令和可以访问的键来限制某些连接。
-   在Redis 5 版本之前，Redis 安全规则只有密码控制 还有通过 rename 来调整
+   在Redis 5 版本之前，Redis安全规则只有密码控制 还有通过 rename 来调整
    高危命令比如 flushdb，KEYS*，shutdown 等。Redis 6 则提供ACL的功能对用户
-   进行更细粒度的权限控制 ：。
+   进行更细粒度的权限控制 ：
 
    - 接入权限：用户名和密码。
 
@@ -1260,3 +1260,216 @@ public class Cluster {
    开启配置
 
    ![](F:\截图\屏幕截图 2023-05-10 164350.png)
+
+## 三，Bloom过滤器
+
+1. 是什么
+
+   布隆过滤器(Bloom Filter)是一种专门用来解决去重问题的高级数据结构。实质就是一个大型位数组和几个不同的无偏hash函数（无偏表示分布均匀）。由一个初值都为零的bit数组和多个个哈希函数构成，用来快速判断某个数据是否存在。但是跟HyperLogLog一样，也一样有那么一点点不精确，也存在一定的误判概率
+
+2. 特点
+
+   - 一个元素如果判断结果存在，**元素不一定存在**，但是判断结果为**不存在是一定不存在**
+   - 布隆过滤器可以添加元素，但是不能删除元素，由于涉及hashcode判断依据，删掉元素会导致误判率增加。
+
+3. Guava版布隆过滤器
+
+   ```java
+   @Test
+   public void testGuavaBloomFilter() {
+       //创建Guava版BloomFilter
+       BloomFilter<Integer> bloomFilter = BloomFilter.create(Funnels.integerFunnel(), 100);
+       //判断元素是否存在
+       System.out.println(bloomFilter.mightContain(1));
+       //放入元素
+       bloomFilter.put(1);
+       System.out.println(bloomFilter.mightContain(1));
+   }
+   ```
+
+## 四，内存淘汰策略
+
+1. 查看redis的最大内存，和占用内存情况
+
+   - 查看redis最大内存
+
+     config get maxmemory或者查看配置文件中的maxmemory
+
+   - 查看内存占用情况
+
+     info memory
+
+2. 开启惰性淘汰
+
+   lazyfree-lazy-eviction yes
+
+3. LRU
+
+   最近最少使用页面置换算法，淘汰最长时间未被使用的页面，看页面最后一次被使用到发生调度的时间长短，首先淘汰最长时间未被使用的页面。
+
+4. LFU
+
+   最近最不常用页面置换算法，淘汰一定时期内被访问次数最少的页面，看一定时间段内页面被使用的频率，淘汰一定时期内被访问次数最少的页面
+
+5. redis内存淘汰策略
+
+   - noeviction：不会驱逐任何key，表示即使内存达到上限也不进行置换，所有能引起内存增加的命令都会返回error
+   - allkeys-lru：对所有key使用LRU算法进行删除，优先删除掉最近最不经常使用的key，用以保存新数据
+   - volatile-lru：对所有设置了过期时间的key使用LRU算法进行删除
+   - allkeys-random：对所有key随机删除
+   - volatile-random：对所有设置了过期时间的key随机删除
+   - volatile-ttl：删除马上要过期的key
+   - allkeys-lfu：对所有key使用LFU算法进行删除
+   - volatile-lfu：对所有设置了过期时间的key使用LFU算法删除
+
+## 五，Redis7新特性
+
+1. 多AOF文件支持
+
+   7.0版本中一个比较大的变化就是aof文件由一个变成了多个，主要分为两种类型：基本文件（base files)、增量文件（incr files)，请注意这些文件名称是复数形式说明每一类文件不仅仅只有一个。在此之外还引入了一个清单文件（manifest）用于跟踪文件以及文件的创建和应用顺序（恢复）
+
+2. config命令增强
+
+   对于Config Set和Get命令，支持在一次调用过程中传递多个配置参数。例如，现在我们可以在执行一次Config Set命令中更改多个参数：config set maxmemory1 0000001 maxmemory-clients 50% port 6399
+
+3. 限制客户端的内存使用Client-eviction
+
+   一旦Redis连接较多，再加上每个连接的内存占用都比较大的时候，Redis总连接内存占用可能会达到 maxmemory的上限，可以增加允许限制所有客户端的总内存使用量配置项，redis.config中对应的配置项
+
+   两种配置形式：指定内存大小、基于maxmemory的百分比。 
+
+   - maxmemory-clients 1g
+
+   - maxmemory-clients 10%
+
+4. listpack紧凑列表调整
+
+   listpack是用来替代ziplist的新数据结构，在7.0版本已经没有ziplist的配置了（6.0版本仅部分数据类型作为过渡阶段在使用）listpack已经替换了ziplist类似hash-max-ziplist-entries的配置
+
+5. 访问安全性增强ACLV2
+
+   在redis.conf配置文件中，protected-mode默认为yes，只有当你希望你的客户端在没有授权的情况下可以连接到 Redis serverl的时候可以将protected-mode设置为no
+
+## 六，RedisObject
+
+为了便于操作，Redis采用redisObject结构来统一五种不同的数据类型，这样所有的数据类型就都可以以相同的形式在函数间传递而不用使用特定的类型结构。同时，为了识别不同的数据类型，redisObjec中定义了type和encoding字段对不同的数据类型加以区别。简单地说，redisObject就是string、hash、Iist、set、zset的父类，可以在函数间传递时隐藏具体的类型信息，所以作者抽象了 redisobject结构来到达同样的目的。
+
+1. 查看key的类型
+
+   TYPE key
+
+2. 查看key的编码
+
+   OBJECT ENCODING key
+
+3. 各字段的含义
+
+   ![](F:\截图\屏幕截图 2023-06-13 153643.png)
+
+   - 4位的type表示具体的数据类型
+
+     ![](F:\截图\屏幕截图 2023-06-13 153938.png)
+
+   - 4位的encoding表示该类型的物理编码方式，同一种数据类型可能有不同的编码方式（比如：string提供了3种，int、embstr、raw）
+
+   - lru表示当内存超限时采用LRU算法清除内存中的对象
+
+   - refcount表示对象的应用计数
+
+4. 查看key的各字段
+
+   DEBUG OBJECT key
+
+## 七，String
+
+1. String的3大物理编码方式
+
+   - int
+   - embstr
+   - raw
+
+2. int
+
+   - 保存long型的64位（8字节）有符号整数
+   - 只有整数才会使用int，如果是浮点数，Redis内部其实先将浮点数转化为字符串值，然后再保存。
+
+3. embstr
+
+   - embedded string：嵌入式的字符串
+
+   - 代表embstr格式的SDS（Simple Dynamic String 简单动态字符串），保存长度小于44字节的字符串
+
+4. SDS对比C语言字符串
+
+   - 字符串的长度处理
+
+     - C语言：需要从头开始遍历，直到遇到'\0'为止，时间复杂度O(N)
+     - SDS：记录当前字符串的长度，直接读取即可，时间复杂度O(1)
+
+   - 内存重新分配
+
+     - C语言：分配内存空间超过后，会导致数组下标越级或者内存分配溢出
+
+     - SDS：SDS修改后，Ien长度小于1M，那么将会额外分配与Ien相同长度的未使用空间。如果修改后长度大于1M，那么将分配1M的使用空间。
+
+       有空间分配对应的就有空间释放。SDS缩短时并不会回收多余的内存空间，而是使用free字段将多出来的空间记录下来。如果后续有变更操作，直接使用free中记录的空间，减少了内存的分配。
+
+   - 二进制安全
+
+     - C语言：二进制数据并不是规则的字符串格式，可能会包含些特殊的字符，比如'\0'等。前面提到过，C中字符串遇到'\0'会结束，那'\0'之后的数据就读取不上了
+     - 根据Ien长度来判断字符串结束的，二进制安全的问题就解决了
+
+5. 对于embstr,由于其实现是只读的，因此在对embstr对象进行修改时，都会先转化为raw再进行修改。因此，只要是修改embstr对象，修改后的对象一定是raw的，无论是否达到了44个字节
+
+   修改字符串APPEND key v
+
+## 八，Hash
+
+1. hash的编码格式
+
+   - redis6：ziplist+hashtable
+   - redis7：listpack+hashtable
+
+2. hash相关配置
+
+   - hash-max-ziplist-entries：使用压缩列表保存时哈希集合中的最大元素个数。
+
+   - hash-max-ziplist-value：使用压缩列表保存时哈希集合中单个元素的最大长度。
+   - Hash类型键的字段个数小于hash-max-ziplist-entries并且每个字段名和字段值的长度小于hash-max-ziplist-value时， Redis才会使用OBJ_ENCODING_ZIPLIST来存储该键，前述条件任意一个不满足则会转换为OBJ_ENCODING_HT的编码方式
+   - redis7的listpack同上
+
+3. ziplist
+
+   Ziplist压缩列表是一种紧凑编码格式，总体思想是多花时间来换取节约空间，即以部分读写性能为代价，来换取极高的内存空间利用率，因此只会用于字段个数少，且字段值也较小的场景。压缩列表内存利用率极高的原因与其连续内存的特性是分不开的。
+
+   ziplist是一个经过特殊编码的双向链表，它不存储指向前一个链表节点prev和指向下一个链表节点的指针next而是存储上一个节点长度和当前节点长度，通过牺牲部分读写性能，来换取高效的内存空间利用率，节约内存，是一种时间换空间的思想。只用在字段个数少，字段值小的场景里面
+
+4. ziplist的各个组成单元
+
+   | 属性    | 类型     | 长度  | 用途                                                         |
+   | ------- | -------- | :---- | :----------------------------------------------------------- |
+   | zlbytes | uint32_t | 4字节 | 记录整个压缩列表占用的内存字节数，在对压缩列表进行内存重分配，或者计算zlend的位置时使用 |
+   | zltail  | uint32_t | 4字节 | 记录压缩列表表尾节点距离压缩列表的起始地址有多少字节，通过这个偏移量，程序无须遍历整个压缩列表就可以确定表尾节点的地址 |
+   | zllen   | uint16_t | 2字节 | 记录了压缩列表包含的节点数量，当这个属性的值小于UINT16MAX(65535)时，这个属性的值就是压缩列表包含节点的数量；当这个值等于 UINT16_MAX时，节点的真实数量需要遍历整个压缩列表才能计算得出 |
+   | entryX  | 列表节点 | 不定  | 压缩列表包含的各个节点，节点的长度由节点保存的内容决定       |
+   | zlend   | uint8_t  | 1字节 | 特殊值0×FF（十进制255)，用于标记压缩列表的末端               |
+
+5. zlentry的结构
+
+   ![](F:\截图\屏幕截图 2023-06-13 171640.png)
+
+6. ziplist的连锁更新问题
+
+   压缩列表新增某个元素或修改某个元素时，如果空间不不够，压缩列表占用的内存空间就需要重新分配。而当新插入的元素较大时，可能会导致后续元素的prevlen占用空间都发生变化，从而引起「连锁更新」问题，导致每个元素的空间都要重新分配，造成访问压缩列表性能的下降。
+
+7. listpack的结构
+
+   | 属性              | 用途                                                         |
+   | ----------------- | ------------------------------------------------------------ |
+   | Total Bytes       | 整个listpack的空间大小，占用4个字节，每个listpack最多占用4294967295Bytes |
+   | num-elements      | listpack中的元素个数，即Entry的个数占用2个字节               |
+   | elemnet           | 每个具体的元素                                               |
+   | listpack-end-byte | listpack结束标志，占用1个字节，内容为0xFF                    |
+
+   
+

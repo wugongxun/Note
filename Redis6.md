@@ -1211,7 +1211,7 @@ public class Cluster {
 
      当我们需要存储一个kv键值对时，首先计算key的hash值hash(key)，将这个key使用相同的函数Hash计算出哈希值并确定此数据在环上的位置，从此位置沿环顺时针“行走”，第一台遇到的服务器就是其应该定位到的服务器，并将该键值对存储在该节点上。
 
-      如我们有Object A、Object B、Object C、Object D四个数据对象，经过哈希计算后，在环空间上的位置如下：
+     如我们有Object A、Object B、Object C、Object D四个数据对象，经过哈希计算后，在环空间上的位置如下：
 
      ![](F:\截图\屏幕截图 2023-02-19 164608.png)
 

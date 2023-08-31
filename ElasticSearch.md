@@ -461,17 +461,17 @@
 
 10. 批量删除
 
-   ```java
-   //批量删除数据
-   BulkRequest bulkRequest = new BulkRequest("user");
-   //加入多个请求
-   bulkRequest.add(new DeleteRequest().id("1002"));
-   bulkRequest.add(new DeleteRequest().id("1003"));
-   BulkResponse response = client.bulk(bulkRequest, RequestOptions.DEFAULT);
-   for (BulkItemResponse item : response.getItems()) {
-       System.out.println(item.getResponse().getResult());
-   }
-   ```
+    ```java
+    //批量删除数据
+    BulkRequest bulkRequest = new BulkRequest("user");
+    //加入多个请求
+    bulkRequest.add(new DeleteRequest().id("1002"));
+    bulkRequest.add(new DeleteRequest().id("1003"));
+    BulkResponse response = client.bulk(bulkRequest, RequestOptions.DEFAULT);
+    for (BulkItemResponse item : response.getItems()) {
+        System.out.println(item.getResponse().getResult());
+    }
+    ```
 
 11. 条件查询
 
@@ -793,4 +793,295 @@
 
    - Token过滤器
 
-     最后，词条按顺序通过每个tokn过滤器。这个过程可能会改变词条（例如，小写化Quick），删除词条（例如，像a，and，the等无用词），或者增加词条（例如，像jump和leap这种同义词）
+     最后，词条按顺序通过每个token过滤器。这个过程可能会改变词条（例如，小写化Quick），删除词条（例如，像a，and，the等无用词），或者增加词条（例如，像jump和leap这种同义词）
+
+6. 文档冲突
+
+   Elasticsearch是分布式的。当文档创建、更新或删除时，新版本的文档必须复制到集群中的其他节点。Elasticsearch也是异步和并发的，这意味着这些复制请求被并行发送，并且到达目的地时也许顺序是乱的。Elasticsearch需要一种方法确保文档的旧版本不会覆盖新的版本。
+
+   我们可以利用version号来确保应用中相互冲突的变更不会导致数据丢失。我们通过指定想要修改文档的version号来达到这个目的。如果该版本不是当前版本号，我们的请求将会失败。老的版本es使用version，但是新版本不支持了，会报下面的错误，提示我们用if_seq_no和if_primary_tem
+
+   ```http
+   [post]http://47.113.148.39:9200/user/_update/1001?if_seq_no=17&if_primary_term=5
+   ```
+
+   一个常见的设置是使用其它数据库作为主要的数据存储，使用Elasticsearch做数据检索，这意味着主数据库的所有更改发生时都需要被复制到Elasticsearch，如果多个进程负责这一数据同步，你可能遇到类似于之前描述的并发问题。如果你的主数据库已经有了版本号——或一个能作为版本号的字段值比如timestamp那么你就可以在Elasticsearch中通过增加version_type=external到查询字符串的方式重用这些相同的版本号，版本号必须是大于零的整数，且小于9.2E+18一一个Java中long类型的正值。
+
+   ```http
+   [get]http://47.113.148.39:9200/user/_doc/1001?version=6&version_type=external
+   ```
+
+7. 安装Kibana
+
+   ```linux
+   docker run \
+   --name kibana \
+   --privileged=true \
+   -p 5601:5601 \
+   -v /home/wgx/kibana/config:/usr/share/kibana/config \
+   -d kibana:7.8.0
+   ```
+
+   修改配置文件，设置中文
+
+   ![](F:\截图\屏幕截图 2023-08-08 171809.png)
+
+# 第三章 框架集成
+
+## 一，SpringData
+
+1. 框架介绍
+
+   Spring Data是一个用于简化数据库、非关系型数据库、索引访问，并支持云服务的开源框架。其主要目标是使得对数据的访问变得方便快捷，并支持map-reduce框架和云计算数据服务。Spring Data可以极大的简化JPA(Elasticsearch…)的写法，可以在几乎不用写实现的情况下，实现对数据的访问和操作。除了CRUD外，还包括如分页、排序等一些常用的功能。
+
+2. 引入依赖
+
+   ```xml
+   <dependency>
+       <groupId>org.springframework.data</groupId>
+       <artifactId>spring-data-elasticsearch</artifactId>
+   </dependency>
+   ```
+
+3. 配置类
+
+   ```java
+   @Configuration
+   @ConfigurationProperties(prefix = "elasticsearch")
+   @Data
+   public class ElasticSearchConfig extends AbstractElasticsearchConfiguration {
+   
+       private String host;
+       private int port;
+   
+       @Override
+       public RestHighLevelClient elasticsearchClient() {
+           RestClientBuilder builder = RestClient.builder(new HttpHost(host, port));
+           return new RestHighLevelClient(builder);
+       }
+   }
+   ```
+
+4. 实体类
+
+   ```java
+   @Data
+   @AllArgsConstructor
+   @NoArgsConstructor
+   @Accessors(chain = true)
+   @Document(indexName = "product")
+   public class Product {
+       @Id
+       private Long id;
+       @Field(type = FieldType.Text)
+       private String title;
+       @Field(type = FieldType.Keyword)
+       private String category;
+       @Field(type = FieldType.Double)
+       private Double price;
+       @Field(type = FieldType.Keyword, index = false)
+       private String images;
+   }
+   ```
+
+5. dao
+
+   ```java
+   @Repository
+   public interface ProductDao extends ElasticsearchRepository<Product, Long> {
+   
+   }
+   ```
+
+6. 测试
+
+   ```java
+   @RunWith(SpringRunner.class)
+   @SpringBootTest(classes = ElasticSearchApplication.class)
+   public class SpringDataEsTest {
+       @Autowired
+       private ProductDao productDao;
+   
+       @Autowired
+       private ElasticsearchRestTemplate template;
+   
+       @Test
+       public void save() {
+           productDao.save(new Product(1L, "小米", "手机", 1999D, ""));
+       }
+   
+       @Test
+       public void update() {
+           productDao.save(new Product(1L, "小米", "手机", 2999D, ""));
+       }
+   
+       @Test
+       public void findById() {
+           Product product = productDao.findById(1L).get();
+           System.out.println(product);
+       }
+   
+       @Test
+       public void findAll() {
+           Iterable<Product> products = productDao.findAll();
+           for (Product product : products) {
+               System.out.println(product);
+           }
+       }
+   
+       @Test
+       public void findByPageable() {
+           Sort sort = Sort.by(Sort.Direction.DESC, "price");//排序
+           int curPage = 1;//当前页码
+           int pageSize = 1;//每页显示多少条记录
+           PageRequest page = PageRequest.of(curPage, pageSize, sort);
+           Page<Product> productPage = productDao.findAll(page);
+           productPage.stream().forEach(System.out::println);
+       }
+   
+       @Test
+       public void search() {
+           NativeSearchQueryBuilder nativeQueryBuilder = new NativeSearchQueryBuilder();
+           BoolQueryBuilder q = QueryBuilders.boolQuery().must(QueryBuilders.matchQuery("title", "小米"));
+           nativeQueryBuilder.withQuery(q);
+           IndexCoordinates indexCoordinates = IndexCoordinates.of("product");
+           SearchHits<Product> res = template.search(nativeQueryBuilder.build(), Product.class, indexCoordinates);
+           for (SearchHit<Product> product : res) {
+               System.out.println(product);
+           }
+       }
+   }
+   ```
+
+# 第四章 优化
+
+## 一，硬件选择
+
+Elasticsearch的基础是Lucene，所有的索引和文档数据是存储在本地的磁盘中，具体的路径可在ES的配置文件../config/elasticsearch.yml中配置
+
+磁盘在现代服务器上通常都是瓶颈。Elasticsearch重度使用磁盘，你的磁盘能处理的吞吐量越大，你的节点就越稳定。
+
+1. 使用SSD，SSD比机械磁盘优秀多了。
+2. 使用RAID0。条带化RAID会提高磁盘I/O,代价显然就是当一块硬盘故障时整个就故障了。不要使用镜像或者奇偶校验RAID因为副本已经提供了这个功能。
+3. 另外，使用多块硬盘，并允许Elasticsearch通过多个path.data目录配置把数据条带化分配到它们上面。
+4. 不要使用远程挂载的存储，比如NFS或者SMB/CFS。这个引入的延迟对性能来说完全是背道而驰的。
+
+## 二，分片策略
+
+分片和副本的设计为ES提供了支持分布式和故障转移的特性，但并不意味着分片和副本是可以无限分配的。而且索引的分片完成分配后由于索引的路由机制，我们是不能重新修改分片数的。
+
+1. 一个分片的底层即为一个Lucene索引，会消耗一定文件句柄、内存、以及CPU运转。
+2. 每一个搜索请求都需要命中索引中的每一个分片，如果每一个分片都处于不同的节点还好，但如果多个分片都需要在同一个节点上竞争使用相同的资源就有些槽糕了。
+3. 用于计算相关度的词项统计信息是基于分片的。如果有许多分片，每一个都只有很少的数据会导致很低的相关度。
+
+一个业务索引具体需要分配多少分片可能需要架构师和技术人员对业务的增长有个预先的判断，横向扩展应当分阶段进行。为下一阶段准备好足够的资源。只有当你进入到下一个阶段，你才有时间思考需要作出哪些改变来达到这个阶段。一般来说，我们遵循一些原则：
+
+1. 控制每个分片占用的硬盘容量不超过ES的最大JVM的堆空间设置（一般设置不超过32G，参考下文的JVM设置原则)，因此，如果素引的总容量在500G左右，那分片大小在16个左右即可；当然，最好同时考虑原则2。
+2. 考虑一下node数量，一般一个节点有时候就是一台物理机，如果分片数过多，大大超过了节点数，很可能会导致一个节点上存在多个分片，一旦该节点故障，即使保持了1个以上的副本，同样有可能会导致数据丢失，集群无法恢复。所以，一股都设置分片数不超过节点数的3倍。
+3. 主分片，副本和节点最大数之间数量，我们分配的时候可以参考：节点数<=主分片数*（副本数+1）
+
+对于节点瞬时中断的问题，默认情况，集群会等待一分钟来查看节点是否会重新加入，如果这个节点在此期间重新加入，重新加入的节点会保持其现有的分片数据，不会触发新的分片分配。这样就可以减少ES在自动再平衡可用分片时所带来的极大开销。
+
+通过修改参数delayed_timeout，可以延长再均衡的时间，可以全局设置也可以在索引级别进行修改：
+
+```http
+[put] /_all/_settings
+{
+	"settings": {
+		"index.unassigned.node_left.delayed_timeout": "5m"
+	}
+}
+```
+
+## 三，路由选择
+
+当我们查询文档的时候，Elasticsearch如何知道一个文档应该存放到哪个分片中呢？它其实是通过下面这个公式来计算出来：
+
+shard = hash(routing) % number_of_primary_shards
+
+routing默认值是文档的id,也可以采用自定义值，比如用户id。
+
+## 四，写入速度优化
+
+ES的默认配置，是综合了数据可靠性、写入速度、搜索实时性等因素。实际使用时，我们需要根据公司要求，进行偏向性的优化。
+
+针对于搜索性能要求不高，但是对写入要求较高的场景，我们需要尽可能的选择恰当写优化策略。综合来说，可以考虑以下几个方面来提升写索引的性能：
+
+1. 加大Translog Flush，目的是降低Iops、Writeblock。
+2. 增加Index Refresh间隔，目的是减少Segment Merge的次数。
+3. 调整Bulk线程池和队列。
+4. 优化节点间的任务分布。
+5. 优化Lucene层的索引建立，目的是降低CPU及IO。
+
+## 五，批量数据的提交
+
+ES提供了Bulk API支持批量操作，当我们有大量的写任务时，可以使用Bulk来进行批量写入。
+
+Bulk默认设置批量提交的数据量不能超过100M。数据条数一般是根据文档的大小和服务器性能而定的，但是单次批处理的数据大小应从5MB~15MB逐渐增加，当性能没有提升时，把这个数据量作为最大值。
+
+## 六，合理使用合并
+
+Lucene以段的形式存储数据。当有新的数据写入索引时，Lucen就会自动创建一个新的段。
+
+随着数据量的变化，段的数量会越来越多，消耗的多文件句柄数及CPU就越多，查询效率就会下降。
+
+由于Lucene段合并的计算量庞大，会消耗大量的I/O，所以ES默认采用较保守的策略，让后台定期进行段合并
+
+## 七，减少Refresh的次数
+
+Lucene在新增数据时，采用了延迟写入的策略，默认情况下索引的refresh_interval为 1秒。
+
+Lucene将待写入的数据先写到内存中，超过1秒（默认）时就会触发一次Refresh，然后Refresh会把内存中的的数据刷新到操作系统的文件缓存系统中。
+
+如果我们对搜索的实效性要求不高，可以将Refresh周期延长，例如30秒。这样还可以有效地减少段刷新次数，但这同时意味着需要消耗更多的Heap内存。
+
+## 八，加大Flush设置
+
+Flush的主要目的是把文件缓存系统中的段持久化到硬盘，当Translog的数据量达到 512MB或者30分钟时，会触发一次Fush。
+
+index.translog.flush_threshold_size参数的默认值是512MB，我们进行修改。
+
+增加参数值意味着文件缓存系统中可能需要存储更多的数据，所以我们需要为操作系统的文件缓存系统留下足够的空间。
+
+## 九，减少副本的数量
+
+ES为了保证集群的可用性，提供了Replicas(副本)支持，然而每个副本也会执行分析、索引及可能的合并过程，所以Replicas的数量会严重影响写索引的效率。
+
+当写索引时，需要把写入的数据都同步到副本节点，副本节点越多，写索引的效率就越慢。
+
+如果我们需要大批量进行写入操作，可以先禁止Replica复制，设置 index.number_of_replicas:0关闭副本。在写入完成后，Replica修改回正常的状态。
+
+## 十，内存设置
+
+ES默认安装后设置的内存是1GB，对于任何一个现实业务来说，这个设置都太小了。如果是通过解压安装的ES,则在ES安装文件中包含一个jvm.option文件，添加如下命令来设置ES的堆大小，Xms表示堆的初始大小，Xmx表示可分配的最大内存，都是1GB。
+
+确保Xmx和Xms的大小是相同的，其目的是为了能够在Java垃圾回收机制清理完堆区后不需要重新分隔计算堆区的大小而浪费资源，可以减轻伸缩堆大小带来的压力。
+
+ES堆内存的分配需要满足一下两个原则
+
+1. 不要超过物理内存的50%：Lucene的设计目的是把底层OS里的数据缓存到内存中。
+
+    Lucene的段是分别存储到单个文件中的，这些文件都是不会变化的，所以很利于缓存，同时操作系统也会把这些段文件缓存起来，以便更快的访问。
+
+   如果我们设置的堆内存过大， Lucene可用的内存将会减少，就会严重影响降低Lucene的全文本查询性能。
+
+2. 堆内存的大小最好不要超过32GB：在Java中，所有对象都分配在堆上，然后有一个Klass Pointer指针指向它的类元数据。
+
+   这个指针在64位的操作系统上为64位，64位的操作系统可以使用更多的内存(2\^64)。在32位的系统上为32位，32位的操作系统的最大寻址空间为4GB(2\^32)。
+
+   但是64位的指针意味着更大的浪费，因为你的指针本身大了。浪费内存不算，更糟糕的是，更大的指针在主内存和缓存器（例如LLC，L1等）之间移动数据的时候，会占用更多的带宽。
+
+## 十一，重要配置项
+
+| 参数名                             | 参数值        | 说明                                                         |
+| :--------------------------------- | ------------- | ------------------------------------------------------------ |
+| cluster.name                       | elasticsearch | 配置ES的集群名称，默认值是ES，建议改成与所存数据相关的名称，ES会自动发现在同一网段下的集群名称相同的节点 |
+| node.name                          | node-1        | 集群中的节点名，在同一个集群中不能重复。节点的名称一旦设置，就不能再改变了。当然，也可以设置成服务器的主机名称，例如 node.name:$ {HOSTNAME} |
+| node.master                        | true          | 指定该节点是否有资格被选举成为Master节点，默认是True，如果被设置为Tue,则只是有资格成为 Master节点，具体能否成为Master节点，需要通过选举产生。 |
+| node.data                          | true          | 指定该节点是否存储索引数据，默认为True。数据的增、删、改、查都是在Data节点完成的。 |
+| index.number_of_shards             | 1             | 设置都索引分片个数，默认是1片。也可以在创建索引时设置该值，具体设置为多大都值要根据数据量的大小来定。如果数据量不大，则设置成1时效率最高 |
+| index.number_of_replicas           | 1             | 设置默认的索引副本个数，默认为1个。副本数越多，集群的可用性越好，但是写索引时需要同步的数据越多。 |
+| transport.tcp.compress             | true          | 设置在节点间传输数据时是否压缩，默认为False，不压缩          |
+| discovery.zen.minimum_master_nodes | 1             | 设置在选举Master节点时需要参与的最少的候选主节点数，默认为1。如果使用默认值，则当网络不稳定时有可能会出现脑裂。合理的数值为(master_eligible_nodes/2)+1，其中 master_eligible_nodes表示集群中的候选主节点数 |
+| discovery.zen.ping.timeout         | 3s            | 设置在集群中自动发现其他节点时Ping连接的超时时间，默认为3秒。在较差的网络环境下需要设置得大一点，防止因误判该节点的存活状态而导致分片的转移 |
+
